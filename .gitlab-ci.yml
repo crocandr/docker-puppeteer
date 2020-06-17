@@ -31,9 +31,9 @@ build-1:
   stage: build
   script:
     - git clone $REPO_URL $SRC_DIR &&
-      sed -i "s@ENV.*DOWNLOAD_URL.*@ENV DOWNLOAD_URL $LATEST_URL@g" $SRC_DIR/Dockerfile | tee $TMP_DIR/build.out &&      
+      mkdir -p $TMP_DIR &&
+      docker build -t croc/puppeteer $SRC_DIR | tee $TMP_DIR/build.out &&
       PUPPETEER_VERSION=$( awk '/puppeteer.*install/{print $2}' $TMP_DIR/build.out | cut -f2 -d'@' ) && echo "Puppeteer version is $PUPPETEER_VERSION" &&
-      docker build -t croc/puppeteer $SRC_DIR &&
       docker tag croc/puppeteer croc/puppeteer:$PUPPETEER_VERSION &&
       docker images | grep -i puppeteer
       
@@ -41,7 +41,7 @@ push-docker:
   stage: push
   script:
     - echo $DOCKERHUB_PWD | docker login --username $DOCKERHUB_USER --password-stdin &&
-      PUPPETEER_VERSION=$( docker images croc/puppeteer | awk '!/latest/{ print $2 }' | grep -iv tag ) && echo "Puppeteer version is $PUPPETEER_VERSION_VERSION" &&
+      PUPPETEER_VERSION=$( docker images croc/puppeteer | awk '!/latest/{ print $2 }' | grep -iv tag ) && echo "Puppeteer version is $PUPPETEER_VERSION" &&
       docker images | grep -i puppeteer &&
       docker push croc/puppeteer &&
       docker push croc/puppeteer:$PUPPETEER_VERSION
