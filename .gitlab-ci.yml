@@ -1,0 +1,48 @@
+
+stages:
+  - clean-prebuild
+  - build
+  - push
+  - clean-postbuild
+
+variables:
+  REPO_URL: "https://gitlab.com/crocandr/puppeteer.git"
+  SRC_DIR: "/tmp/puppeteer-build"
+  TMP_DIR: "/tmp/puppeteer-temp"
+
+.clean-commands:
+  script:
+    - if [ -d $SRC_DIR ]; then sudo rm -rf $SRC_DIR; fi &&
+      if [ -d $TMP_DIR ]; then sudo rm -rf $TMP_DIR; fi &&
+      if [ -f $SRC_DIR/docker-compose.yml ]; then docker-compose -f $SRC_DIR/docker-compose.yml rm -v -f -s; fi &&
+      if [ $( docker ps -a | grep -i puppeteer | wc -l ) -gt 0 ]; then docker rm -v -f $( docker ps -a | awk '/puppeteer/{ print $1 }' ); fi &&
+      docker system prune -f &&
+      if [ $( docker images | grep -i puppeteer | wc -l ) -gt 0 ]; then docker rmi -f $( docker images | awk '/puppeteer/{ print $3 }' ); fi
+
+clean-pre:
+  stage: clean-prebuild
+  extends: .clean-commands
+
+clean-post:
+  stage: clean-postbuild
+  extends: .clean-commands
+      
+build-1:
+  stage: build
+  script:
+    - git clone $REPO_URL $SRC_DIR &&
+      sed -i "s@ENV.*DOWNLOAD_URL.*@ENV DOWNLOAD_URL $LATEST_URL@g" $SRC_DIR/Dockerfile | tee $TMP_DIR/build.out &&      
+      PUPPETEER_VERSION=$( awk '/puppeteer.*install/{print $2}' $TMP_DIR/build.out | cut -f2 -d'@' ) && echo "Puppeteer version is $PUPPETEER_VERSION" &&
+      docker build -t croc/puppeteer $SRC_DIR &&
+      docker tag croc/puppeteer croc/puppeteer:$PUPPETEER_VERSION &&
+      docker images | grep -i puppeteer
+      
+push-docker:
+  stage: push
+  script:
+    - echo $DOCKERHUB_PWD | docker login --username $DOCKERHUB_USER --password-stdin &&
+      PUPPETEER_VERSION=$( docker images croc/puppeteer | awk '!/latest/{ print $2 }' | grep -iv tag ) && echo "Puppeteer version is $PUPPETEER_VERSION_VERSION" &&
+      docker images | grep -i puppeteer &&
+      docker push croc/puppeteer &&
+      docker push croc/puppeteer:$PUPPETEER_VERSION
+
