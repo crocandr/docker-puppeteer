@@ -34,7 +34,7 @@ build-1:
       mkdir -p $TMP_DIR &&
       docker build -t croc/puppeteer $SRC_DIR | tee $TMP_DIR/build.out &&
       PUPPETEER_VERSION=$( grep -i "puppeteer@" $TMP_DIR/build.out | uniq | tail -n1 | cut -f2 -d'@' ) && echo "Puppeteer version is $PUPPETEER_VERSION" &&
-      if [ -z "$PUPPETEER_VERSION" ] && { echo "Puppeteer version not found"; exit 1; } &&
+      if [ -z "$PUPPETEER_VERSION" ]; then echo "Puppeteer version not found"; exit 1; fi &&
       docker tag croc/puppeteer croc/puppeteer:$PUPPETEER_VERSION &&
       docker images | grep -i puppeteer
       
