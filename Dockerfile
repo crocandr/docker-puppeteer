@@ -1,15 +1,16 @@
-FROM node:16-alpine
+FROM alpine
 
 ENV USER "puppeteer"
 ENV TESTDIR /tests
 
 # install packages
-RUN apk add nodejs npm chromium bash curl
+RUN apk add nodejs yarn chromium bash curl
 
 # install puppeteer
-# remove node_modules folder - idealTree problem fix for newer nodejs
-RUN rm -rf /usr/local/lib/node_modules && \
-    npm install puppeteer
+#  npm install - idealTree exists bug
+#RUN npm install puppeteer
+#  yarn solve this
+RUN yarn add puppeteer
 
 # set user
 RUN adduser -s /bin/bash -g users --disabled-password $USER
